@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0d1829"/>
+      <stop offset="100%" stop-color="#05080e"/>
+    </radialGradient>
+    <radialGradient id="glow-center" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7a9ac8" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#7a9ac8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#b8c4d4" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#7a9ac8" stop-opacity="0.4"/>
+    </radialGradient>
+    <filter id="soft-glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="text-glow">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <clipPath id="circle-clip">
+      <circle cx="200" cy="200" r="190"/>
+    </clipPath>
+  </defs>
+
+  <!-- Background circle -->
+  <circle cx="200" cy="200" r="195" fill="url(#bg)" stroke="#1a2a3e" stroke-width="1"/>
+
+  <!-- Subtle glow at center -->
+  <circle cx="200" cy="200" r="120" fill="url(#glow-center)"/>
+
+  <!-- Outer orbit ring -->
+  <circle cx="200" cy="200" r="155" fill="none" stroke="#1a2a3e" stroke-width="1"/>
+
+  <!-- Middle orbit ring (slightly elliptical for depth) -->
+  <ellipse cx="200" cy="200" rx="108" ry="100" fill="none" stroke="#1a2a3e" stroke-width="0.8"/>
+
+  <!-- Inner orbit ring -->
+  <circle cx="200" cy="200" r="62" fill="none" stroke="#1e2e42" stroke-width="0.8"/>
+
+  <!-- Retrograde arc — outer ring, indicating reverse motion -->
+  <path d="M 90 170 A 120 120 0 0 1 310 170" fill="none" stroke="#7a9ac8" stroke-width="1.2" stroke-opacity="0.5" stroke-dasharray="4 3"/>
+
+  <!-- Retrograde arrow tips on the arc ends -->
+  <polygon points="90,170 98,162 96,174" fill="#7a9ac8" fill-opacity="0.5"/>
+  <polygon points="310,170 302,162 304,174" fill="#7a9ac8" fill-opacity="0.5"/>
+
+  <!-- Planet on outer orbit — upper right -->
+  <circle cx="320" cy="148" r="5.5" fill="none" stroke="#c8a87a" stroke-width="1"/>
+  <circle cx="320" cy="148" r="2.5" fill="#c8a87a" fill-opacity="0.7"/>
+
+  <!-- Planet on middle orbit — lower left -->
+  <circle cx="108" cy="240" r="4" fill="none" stroke="#7ab8c4" stroke-width="0.8"/>
+  <circle cx="108" cy="240" r="1.8" fill="#7ab8c4" fill-opacity="0.6"/>
+
+  <!-- Small dot — upper left on outer ring -->
+  <circle cx="130" cy="108" r="2.2" fill="#a07ab4" fill-opacity="0.5"/>
+
+  <!-- Central body — the "sun" -->
+  <circle cx="200" cy="200" r="22" fill="#070d1a" stroke="#2a3e58" stroke-width="1"/>
+  <circle cx="200" cy="200" r="14" fill="url(#orb-glow)" filter="url(#soft-glow)"/>
+
+  <!-- ℞ glyph centered -->
+  <text x="200" y="208"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="22"
+    font-weight="400"
+    fill="#dde6f4"
+    text-anchor="middle"
+    filter="url(#text-glow)"
+    opacity="0.95">℞</text>
+
+
+
+  <!-- Star field — small scattered dots -->
+  <circle cx="58"  cy="80"  r="1"   fill="white" fill-opacity="0.35"/>
+  <circle cx="340" cy="65"  r="1.2" fill="white" fill-opacity="0.28"/>
+  <circle cx="355" cy="290" r="1"   fill="white" fill-opacity="0.3"/>
+  <circle cx="50"  cy="310" r="0.9" fill="white" fill-opacity="0.25"/>
+  <circle cx="170" cy="48"  r="1"   fill="white" fill-opacity="0.3"/>
+  <circle cx="330" cy="200" r="0.8" fill="white" fill-opacity="0.2"/>
+  <circle cx="75"  cy="185" r="1.1" fill="white" fill-opacity="0.22"/>
+  <circle cx="230" cy="360" r="1"   fill="white" fill-opacity="0.2"/>
+  <circle cx="290" cy="345" r="0.8" fill="white" fill-opacity="0.18"/>
+  <circle cx="120" cy="355" r="1"   fill="white" fill-opacity="0.2"/>
+
+  <!-- Outer border ring -->
+  <circle cx="200" cy="200" r="192" fill="none" stroke="#0f1c2e" stroke-width="1.5"/>
+</svg>

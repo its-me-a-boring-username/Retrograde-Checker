@@ -35,6 +35,33 @@ function getStatus(planet, dateStr) {
   return { rx:false, nextStart:null, nextEnd:null, daysUntil:null };
 }
 
+function getUpcoming(planet, dateStr, count=5) {
+  const list = EPHEMERIS[planet]||[];
+  const results = [];
+  for(const [s,e] of list) {
+    if(s > dateStr) {
+      results.push({start:s, end:e});
+      if(results.length >= count) break;
+    }
+  }
+  return results;
+}
+
+function getPast(planet, dateStr, count=3) {
+  const list = EPHEMERIS[planet]||[];
+  const results = [];
+  for(let i=list.length-1;i>=0;i--) {
+    const [s,e] = list[i];
+    if(e < dateStr) {
+      results.unshift({start:s, end:e});
+      if(results.length >= count) break;
+    }
+  }
+  return results;
+}
+
+const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
 const S = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Josefin+Sans:wght@100;300;400&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -46,6 +73,7 @@ body{background:#05080e}
 .title{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,5vw,3.6rem);font-weight:300;letter-spacing:.07em;color:#dde6f4;line-height:1.1}
 .title em{font-style:italic;color:#7a9ac8}
 .sub{margin-top:8px;font-size:.6rem;letter-spacing:.28em;text-transform:uppercase;color:#2e3e54}
+.tz{margin-top:5px;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:#2e3e54;opacity:.7}
 .dr{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:44px;flex-wrap:wrap}
 .dlabel{font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;color:#3a4e66}
 .dinput{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);border-radius:2px;color:#c0cce0;font-family:'Josefin Sans',sans-serif;font-size:.82rem;letter-spacing:.08em;padding:8px 12px;outline:none;transition:border-color .2s;cursor:pointer}
@@ -60,32 +88,64 @@ body{background:#05080e}
 .bnone{font-family:'Cormorant Garamond',serif;font-style:italic;color:#3a4e66;font-size:.88rem}
 .slabel{font-size:.58rem;letter-spacing:.28em;text-transform:uppercase;color:#2e3e54;margin-bottom:18px;padding-left:1px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(275px,1fr));gap:14px;margin-bottom:14px}
-.card{border-radius:2px;padding:20px 22px;position:relative;transition:transform .22s,box-shadow .22s;overflow:hidden;cursor:default}
+.card{border-radius:2px;padding:20px 22px;position:relative;transition:transform .22s,box-shadow .22s;overflow:hidden;cursor:pointer}
 .card:hover{transform:translateY(-2px)}
 .card.dir{background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.065)}
 .card.rx{border:1px solid;animation:glow 4s ease-in-out infinite}
+
 @keyframes glow{0%,100%{box-shadow:0 0 18px var(--g),inset 0 0 28px rgba(0,0,0,.5)}50%{box-shadow:0 0 38px var(--g),inset 0 0 28px rgba(0,0,0,.3)}}
 .ctop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:15px}
 .pid{display:flex;align-items:center;gap:10px}
 .gl{font-size:1.5rem;line-height:1;opacity:.92}
+.gl.big-gl{font-size:2.8rem}
 .pname{font-family:'Cormorant Garamond',serif;font-size:1.18rem;font-weight:400;letter-spacing:.04em;line-height:1}
+.pname.big-name{font-size:2rem}
 .porb{font-size:.52rem;letter-spacing:.14em;text-transform:uppercase;color:#2e3e54;margin-top:3px}
+.porb.big-orb{font-size:.65rem}
 .badge{font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;padding:3px 8px;border-radius:1px;border:1px solid;align-self:flex-start}
 .brx{background:rgba(255,255,255,.055);animation:bp 2.2s ease-in-out infinite}
 .bdir{background:transparent;border-color:rgba(255,255,255,.07)!important;color:#2e3e54!important}
 @keyframes bp{0%,100%{opacity:1}50%{opacity:.55}}
 .info{font-size:.7rem;letter-spacing:.04em;line-height:1.9;color:#5a6e88}
+.info.big-info{font-size:.92rem;line-height:2.2}
 .val{color:#90a8c4}
 .big{font-family:'Cormorant Garamond',serif;font-size:1.9rem;font-weight:300;line-height:1;margin-bottom:1px}
+.big.xl{font-size:3.2rem}
 .small{font-size:.56rem;letter-spacing:.17em;text-transform:uppercase;color:#2e3e54}
+.small.md{font-size:.68rem}
 .pbar{margin-top:13px;height:1.5px;background:rgba(255,255,255,.055);border-radius:1px;overflow:hidden}
 .pfill{height:100%;border-radius:1px;transition:width .6s ease}
 .plabels{display:flex;justify-content:space-between;font-size:.56rem;letter-spacing:.08em;margin-top:4px;color:#2e3e54}
-.foot{text-align:center;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:#1e2e3e;margin-top:52px;line-height:2.2}
+.expand-hint{font-size:.52rem;letter-spacing:.14em;text-transform:uppercase;color:#2e3e54;text-align:right;margin-top:12px;opacity:.6}
+.modal-overlay{position:fixed;inset:0;z-index:100;background:rgba(5,8,14,.85);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeIn .18s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{position:relative;width:100%;max-width:680px;max-height:90vh;overflow-y:auto;border-radius:2px;padding:32px 36px;background:#070c15;border:1px solid;animation:slideUp .2s ease}
+@keyframes slideUp{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-close{background:transparent;border:1px solid rgba(255,255,255,.09);border-radius:2px;color:#3a4e66;font-family:'Josefin Sans',sans-serif;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all .2s}
+.modal-close:hover{color:#c0cce0;border-color:rgba(255,255,255,.2)}
+.close-btn{background:transparent;border:1px solid rgba(255,255,255,.09);border-radius:2px;color:#3a4e66;font-family:'Josefin Sans',sans-serif;font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;padding:5px 10px;cursor:pointer;transition:all .2s}
+.close-btn:hover{color:#c0cce0;border-color:rgba(255,255,255,.2)}
+.exp-body{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:32px}
+@media(max-width:600px){.exp-body{grid-template-columns:1fr}}
+.exp-section-title{font-size:.56rem;letter-spacing:.26em;text-transform:uppercase;color:#2e3e54;margin-bottom:12px;border-bottom:1px solid rgba(255,255,255,.04);padding-bottom:8px}
+.period-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.03);font-size:.78rem;color:#5a6e88;letter-spacing:.04em}
+.period-row:last-child{border-bottom:none}
+.period-dur{font-size:.62rem;color:#2e3e54;letter-spacing:.08em}
+.tip-bar{text-align:center;margin-top:48px;margin-bottom:8px}
+.tip-btn{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1px solid rgba(255,255,255,.09);border-radius:2px;color:#3a4e66;font-family:'Josefin Sans',sans-serif;font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;padding:10px 20px;cursor:pointer;transition:all .3s;text-decoration:none}
+.tip-btn:hover{color:#e0b896;border-color:rgba(224,184,150,.3);background:rgba(224,184,150,.04)}
+.tip-icon{font-size:1rem}
+.foot{text-align:center;font-size:.58rem;letter-spacing:.14em;text-transform:uppercase;color:#1e2e3e;margin-top:24px;line-height:2.2}
 `;
 
 export default function App() {
-  const [dateStr, setDateStr] = useState(toDateStr(new Date()));
+  const today = new Date();
+  const localDateStr = today.getFullYear() + '-' +
+    String(today.getMonth()+1).padStart(2,'0') + '-' +
+    String(today.getDate()).padStart(2,'0');
+
+  const [dateStr, setDateStr] = useState(localDateStr);
+  const [modalPlanet, setModalPlanet] = useState(null);
 
   const statuses = useMemo(() =>
     PLANETS.map(p => ({ ...p, ...getStatus(p.name, dateStr) })),
@@ -94,6 +154,17 @@ export default function App() {
 
   const rList = statuses.filter(s => s.rx);
   const dList = statuses.filter(s => !s.rx);
+
+  const handleToday = () => {
+    const t = new Date();
+    const s = t.getFullYear() + '-' +
+      String(t.getMonth()+1).padStart(2,'0') + '-' +
+      String(t.getDate()).padStart(2,'0');
+    setDateStr(s);
+  };
+
+  const openModal = (name) => setModalPlanet(name);
+  const closeModal = () => setModalPlanet(null);
 
   return (
     <>
@@ -105,6 +176,7 @@ export default function App() {
           <header className="hd">
             <h1 className="title">Planetary <em>Retrograde</em> Almanac</h1>
             <p className="sub">Swiss Ephemeris · Astrodienst · 2000–2099</p>
+            <p className="tz">Local timezone: {TZ}</p>
           </header>
 
           <div className="dr">
@@ -112,7 +184,7 @@ export default function App() {
             <input type="date" className="dinput" value={dateStr}
               min="2000-01-01" max="2099-12-31"
               onChange={e => setDateStr(e.target.value)} />
-            <button className="tbtn" onClick={() => setDateStr(toDateStr(new Date()))}>Today</button>
+            <button className="tbtn" onClick={handleToday}>Today</button>
           </div>
 
           <div className="banner">
@@ -133,14 +205,33 @@ export default function App() {
             <>
               <p className="slabel">Currently retrograde</p>
               <div className="grid" style={{marginBottom:36}}>
-                {rList.map(p => <Card key={p.name} p={p}/>)}
+                {rList.map(p => (
+                  <Card key={p.name} p={p} onOpen={() => openModal(p.name)}/>
+                ))}
               </div>
             </>
           )}
 
           <p className="slabel">Direct — upcoming retrograde</p>
           <div className="grid">
-            {dList.map(p => <Card key={p.name} p={p}/>)}
+            {dList.map(p => (
+              <Card key={p.name} p={p} onOpen={() => openModal(p.name)}/>
+            ))}
+          </div>
+
+          {modalPlanet && (
+            <Modal
+              p={statuses.find(s => s.name === modalPlanet)}
+              dateStr={dateStr}
+              onClose={closeModal}
+            />
+          )}
+
+          <div className="tip-bar">
+            <a className="tip-btn" href="https://ko-fi.com/isitretrograde" target="_blank" rel="noopener noreferrer">
+              <span className="tip-icon">☕</span>
+              <span>Buy me a coffee</span>
+            </a>
           </div>
 
           <footer className="foot">
@@ -153,14 +244,14 @@ export default function App() {
   );
 }
 
-function Card({p}) {
+function Card({p, onOpen}) {
   const {name,glyph,color,glow,orbit,rx,start,end,pct,daysLeft,daysIn,nextStart,nextEnd,daysUntil} = p;
   const style = rx
     ? {"--g":glow, background:`linear-gradient(140deg,${color}07 0%,transparent 55%)`, borderColor:color+"44"}
     : {};
 
   return (
-    <div className={`card ${rx?"rx":"dir"}`} style={style}>
+    <div className={`card ${rx?"rx":"dir"}`} style={style} onClick={onOpen}>
       <div className="ctop">
         <div className="pid">
           <span className="gl" style={{color}}>{glyph}</span>
@@ -180,7 +271,7 @@ function Card({p}) {
             <div>Began <span className="val">{fmtDate(start)}</span></div>
             <div>Stations direct <span className="val">{fmtDate(end)}</span></div>
             <div style={{marginTop:4}}>
-              <span className="val big" style={{color:color+"cc"}}>{daysLeft}</span>
+              <span className="big" style={{color:color+"cc"}}>{daysLeft}</span>
               <span className="small" style={{marginLeft:8}}>days remaining</span>
             </div>
           </div>
@@ -202,6 +293,95 @@ function Card({p}) {
           )}
         </div>
       )}
+      <div className="expand-hint">tap for details</div>
+    </div>
+  );
+}
+
+function Modal({p, dateStr, onClose}) {
+  const {name,glyph,color,glow,orbit,rx,start,end,pct,daysLeft,daysIn,nextStart,nextEnd,daysUntil} = p;
+  const style = rx
+    ? {"--g":glow, background:`linear-gradient(140deg,${color}09 0%,#070c15 60%)`, borderColor:color+"44"}
+    : {borderColor:"rgba(255,255,255,.09)"};
+
+  const upcoming = useMemo(() => getUpcoming(name, dateStr, 6), [name, dateStr]);
+  const past = useMemo(() => getPast(name, dateStr, 3), [name, dateStr]);
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal" style={style} onClick={e=>e.stopPropagation()}>
+        <div className="ctop" style={{marginBottom:20}}>
+          <div className="pid" style={{alignItems:"center",gap:14}}>
+            <span className="gl big-gl" style={{color}}>{glyph}</span>
+            <div>
+              <div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                <div className="pname big-name" style={{color}}>{name}</div>
+                <div className="badge" style={rx?{borderColor:color+"55",color,alignSelf:"center",marginTop:"6px"}:{color:"#2e3e54",alignSelf:"center",marginTop:"6px"}}>
+                  <span className={rx?"brx":"bdir"}>{rx?"℞ retrograde":"direct"}</span>
+                </div>
+              </div>
+              <div className="porb big-orb">{orbit} orbit</div>
+            </div>
+          </div>
+          <button className="modal-close" onClick={onClose}>close ✕</button>
+        </div>
+
+        {rx ? (
+          <>
+            <div className="info big-info">
+              <div>Began <span className="val">{fmtDate(start)}</span></div>
+              <div>Stations direct <span className="val">{fmtDate(end)}</span></div>
+              <div style={{marginTop:4}}>
+                <span className="big xl" style={{color:color+"cc"}}>{daysLeft}</span>
+                <span className="small md" style={{marginLeft:8}}>days remaining</span>
+              </div>
+            </div>
+            <div className="pbar" style={{marginTop:16}}>
+              <div className="pfill" style={{width:`${pct}%`,background:`linear-gradient(90deg,${color}30,${color}99)`}}/>
+            </div>
+            <div className="plabels"><span>day {daysIn}</span><span>{pct}%</span><span>day {daysIn+daysLeft}</span></div>
+          </>
+        ) : (
+          <div className="info big-info">
+            {daysUntil !== null ? (
+              <>
+                <div className="big xl" style={{color:color+"bb"}}>{daysUntil}</div>
+                <div className="small md" style={{marginBottom:12}}>days until retrograde</div>
+                <div><span className="val">{fmtDate(nextStart)}</span><span style={{margin:"0 7px",color:"#1e2e3e"}}>→</span><span className="val">{fmtDate(nextEnd)}</span></div>
+              </>
+            ) : (
+              <span style={{fontStyle:"italic",color:"#2e3e54",fontFamily:"Cormorant Garamond,serif"}}>No data in range</span>
+            )}
+          </div>
+        )}
+
+        <div className="exp-body" style={{marginTop:28}}>
+          <div>
+            <div className="exp-section-title">Upcoming retrograde periods</div>
+            {upcoming.length === 0
+              ? <div style={{color:"#2e3e54",fontStyle:"italic",fontSize:".8rem"}}>None in range</div>
+              : upcoming.map((u,i) => (
+                <div key={i} className="period-row">
+                  <span><span className="val">{fmtDate(u.start)}</span> → <span className="val">{fmtDate(u.end)}</span></span>
+                  <span className="period-dur">{daysBetween(u.start,u.end)}d</span>
+                </div>
+              ))
+            }
+          </div>
+          <div>
+            <div className="exp-section-title">Recent retrograde periods</div>
+            {past.length === 0
+              ? <div style={{color:"#2e3e54",fontStyle:"italic",fontSize:".8rem"}}>None in range</div>
+              : past.map((u,i) => (
+                <div key={i} className="period-row">
+                  <span><span className="val">{fmtDate(u.start)}</span> → <span className="val">{fmtDate(u.end)}</span></span>
+                  <span className="period-dur">{daysBetween(u.start,u.end)}d</span>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
